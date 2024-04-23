@@ -26,7 +26,7 @@ class RouteSplit:
 
     def remove_branch(self) -> RouteStore:
         """Removes the branch, should just leave the remaining following route."""
-        raise NotImplementedError()
+        return self.following.store
 
 @dataclass
 class RouteSeries:
@@ -52,27 +52,28 @@ class RouteSeries:
         Returns a route store which would be the result of:
         Adding a computer in series before the current one.
         """
-        raise NotImplementedError()
+        return RouteSeries(computer, Route(self))
 
     def add_computer_after(self, computer: Computer) -> RouteStore:
         """
         Returns a route store which would be the result of:
         Adding a computer after the current computer, but before the following route.
         """
-        raise NotImplementedError()
+        return RouteSeries(self.computer, Route(RouteSeries(computer, self.following)))
+
 
     def add_empty_branch_before(self) -> RouteStore:
         """Returns a route store which would be the result of:
         Adding an empty branch, where the current routestore is now the following path.
         """
-        raise NotImplementedError()
+        return RouteSplit(Route(None), Route(None), Route(self))
 
     def add_empty_branch_after(self) -> RouteStore:
         """
         Returns a route store which would be the result of:
         Adding an empty branch after the current computer, but before the following route.
         """
-        raise NotImplementedError()
+        return RouteSeries(self.computer, Route(RouteSplit(Route(None), Route(None), self.following)))
 
 
 RouteStore = Union[RouteSplit, RouteSeries, None]
@@ -88,14 +89,14 @@ class Route:
         Returns a *new* route which would be the result of:
         Adding a computer before everything currently in the route.
         """
-        raise NotImplementedError()
+        return Route(RouteSeries(computer, self))
 
     def add_empty_branch_before(self) -> Route:
         """
         Returns a *new* route which would be the result of:
         Adding an empty branch before everything currently in the route.
         """
-        raise NotImplementedError()
+        return Route(RouteSplit(Route(None), Route(None), self))
 
     def follow_path(self, virus_type: VirusType) -> None:
         """Follow a path and add computers according to a virus_type."""
