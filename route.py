@@ -1,6 +1,8 @@
 from __future__ import annotations
+import copy
 from dataclasses import dataclass
 
+from branch_decision import BranchDecision
 from computer import Computer
 
 from typing import TYPE_CHECKING, Union
@@ -45,7 +47,7 @@ class RouteSeries:
         Returns a route store which would be the result of:
         Removing the computer at the beginning of this series.
         """
-        raise NotImplementedError()
+        pass
 
     def add_computer_before(self, computer: Computer) -> RouteStore:
         """
@@ -100,8 +102,36 @@ class Route:
 
     def follow_path(self, virus_type: VirusType) -> None:
         """Follow a path and add computers according to a virus_type."""
-        raise NotImplementedError()
+        temp_store = copy.deepcopy(self.store)
+
+        while temp_store:
+            if type(temp_store) == RouteSplit:
+                decision = virus_type.select_branch(temp_store.top, temp_store.bottom)
+                if decision == BranchDecision.TOP:
+                    temp_store = temp_store.top.store
+                elif decision == BranchDecision.BOTTOM:
+                    temp_store = temp_store.bottom.store
+                else:
+                    break
+
+            elif type(temp_store) == RouteSeries:
+                virus_type.add_computer(temp_store.computer)
+                temp_store = temp_store.following.store
+            
+            else:
+                break
+    
 
     def add_all_computers(self) -> list[Computer]:
         """Returns a list of all computers on the route."""
-        raise NotImplementedError()
+
+        if type(self.store) == RouteSplit:
+            return self.store.top.add_all_computers() + self.store.bottom.add_all_computers() + self.store.following.add_all_computers()
+            
+        elif type(self.store) == RouteSeries:
+            return [self.store.computer] + self.store.following.add_all_computers()
+
+        else:
+            return []
+    
+    
