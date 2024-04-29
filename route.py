@@ -6,6 +6,7 @@ from branch_decision import BranchDecision
 from computer import Computer
 
 from typing import TYPE_CHECKING, Union
+from data_structures.linked_stack import LinkedStack
 
 # Avoid circular imports for typing.
 if TYPE_CHECKING:
@@ -102,25 +103,30 @@ class Route:
 
     def follow_path(self, virus_type: VirusType) -> None:
         """Follow a path and add computers according to a virus_type."""
-        temp_store = copy.deepcopy(self.store)
-
-        while temp_store:
-            if type(temp_store) == RouteSplit:
+        temp_store = self.store
+        temp_stack = LinkedStack()
+        while True:
+            if isinstance(temp_store, RouteSplit):
                 decision = virus_type.select_branch(temp_store.top, temp_store.bottom)
+                temp_stack.push(temp_store.remove_branch())
                 if decision == BranchDecision.TOP:
                     temp_store = temp_store.top.store
                 elif decision == BranchDecision.BOTTOM:
-                    temp_store = temp_store.bottom.store
+                    temp_store= temp_store.bottom.store
                 else:
                     break
 
-            elif type(temp_store) == RouteSeries:
+            elif isinstance(temp_store, RouteSeries):
                 virus_type.add_computer(temp_store.computer)
-                temp_store = temp_store.following.store
-            
+                if temp_store.following.store is not None:
+                    temp_store = temp_store.following.store
+                elif not temp_stack.is_empty():
+                    temp_store = temp_stack.pop()
+                else:
+                    break
             else:
-                break
-    
+                temp_store = temp_stack.pop()
+        
 
     def add_all_computers(self) -> list[Computer]:
         """Returns a list of all computers on the route."""
