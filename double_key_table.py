@@ -25,7 +25,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     # No test case should exceed 1 million entries.
     TABLE_SIZES = [5, 13, 29, 53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593, 49157, 98317, 196613, 393241, 786433, 1572869]
-
+    
     HASH_BASE = 31
 
     def __init__(self, sizes: list | None = None, internal_sizes: list | None = None) -> None:
@@ -76,7 +76,41 @@ class DoubleKeyTable(Generic[K1, K2, V]):
         :raises KeyError: When the key pair is not in the table, but is_insert is False.
         :raises FullError: When a table is full and cannot be inserted.
         """
-        raise NotImplementedError()
+        position = self.hash1(key1)
+
+        if key2 is None:
+            for _ in range(self.table_size):
+                if self.array[position] is None:
+                    if is_insert:
+                        return position    
+                    raise KeyError(key)
+                elif self.array[position][0] == key1:
+                    return position
+                else:
+                    # Taken by something else. Time to linear probe.
+                    position = (position + 1) % self.table_size
+
+            raise KeyError(key1)
+            
+        else:
+            for _ in range(self.table_size):
+                #Your linear probe method should create the internal hash table if is_insert is true and this is the first pair with key1.
+                if self.array[position] is None:
+                    if is_insert:
+                        internal_table = LinearProbeTable(self.internal_sizes)
+                        internal_table.hash = lambda k, tab=LinearProbeTable: self.hash2(k, tab)
+                        self.array[position] = (key1, internal_table)
+                    else:
+                        raise KeyError(key1)
+                    index2 = self.hash2(key2, self.array[position][1])
+                    return position, index2
+                elif self.array[position][0] == key1:
+                    return position, self.array[position][1]._linear_probe(key2, is_insert)
+                else:
+                    position = (position + 1) % self.table_size
+
+            
+            raise KeyError(key1)
 
     def iter_keys(self, key: K1 | None = None) -> Iterator[K1 | K2]:
         """
