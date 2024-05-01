@@ -31,7 +31,7 @@ class TestDoubleHash(unittest.TestCase):
         dt["May", "Jim"] = 7 # Linear probing on internal table
         self.assertEqual(dt._linear_probe("May", "Jim", False), (6, 1))
         self.assertRaises(KeyError, lambda: dt._linear_probe("Het", "Liz", False))
-        self.assertEqual(dt._linear_probe("Het", "Liz", True), (2, 2))
+        self.assertEqual(dt._linear_probe("Het", "Liz", True), (2, 2)) 
         dt["Het", "Liz"] = 8 # Linear probing on external table
         self.assertEqual(dt._linear_probe("Het", "Liz", False), (2, 2))
 
@@ -136,3 +136,6 @@ class TestDoubleHash(unittest.TestCase):
         # with an iterator.
         self.assertRaises(BaseException, lambda: next(key_iterator))
         self.assertRaises(BaseException, lambda: next(value_iterator))
+
+if __name__ == "__main__":
+    unittest.main()
