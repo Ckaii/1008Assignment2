@@ -83,7 +83,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                 if self.array[position] is None:
                     if is_insert:
                         return position    
-                    raise KeyError(key)
+                    raise KeyError(key1)
                 elif self.array[position][0] == key1:
                     return position
                 else:
@@ -109,9 +109,8 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                 else:
                     position = (position + 1) % self.table_size
 
-            
             raise KeyError(key1)
-
+        
     def iter_keys(self, key: K1 | None = None) -> Iterator[K1 | K2]:
         """
         key = None:
@@ -119,7 +118,18 @@ class DoubleKeyTable(Generic[K1, K2, V]):
         key = k:
             Returns an iterator of all keys in the bottom-hash-table for k.
         """
-        raise NotImplementedError()
+        if key is None:
+            for index in range(self.table_size):
+                if self.array[index] is not None:
+                    yield self.array[index][0]
+        
+        else:
+            position = self._linear_probe(key, None, False)
+            if position is None:
+                raise KeyError(key)
+            for index in range(self.array[position][1].table_size):
+                if self.array[position][1].array[index] is not None:
+                    yield self.array[position][1].array[index][0]
 
     def iter_values(self, key: K1 | None = None) -> Iterator[V]:
         """
@@ -128,21 +138,60 @@ class DoubleKeyTable(Generic[K1, K2, V]):
         key = k:
             Returns an iterator of all values in the bottom-hash-table for k.
         """
-        raise NotImplementedError()
+        if key is None:
+            for index in range(self.table_size):
+                if self.array[index] is not None:
+                    for j in range(self.array[index][1].table_size):
+                        if self.array[index][1].array[j] is not None:
+                            yield self.array[index][1].array[j][1]
+        
+        else:
+            position = self._linear_probe(key, None, False)
+            if position is None:
+                raise KeyError(key)
+            for index in range(self.array[position][1].table_size):
+                if self.array[position][1].array[index] is not None:
+                    yield self.array[position][1].array[index][1]
 
     def keys(self, key: K1 | None = None) -> list[K1 | K2]:
         """
         key = None: returns all top-level keys in the table.
         key = x: returns all bottom-level keys for top-level key x.
         """
-        raise NotImplementedError()
+        res = []
+        if key is None:
+            for index in range(self.table_size):
+                if self.array[index] is not None:
+                    res.append(self.array[index][0])
+        else:
+            position = self._linear_probe(key, None, False)
+            if position is None:
+                raise KeyError(key)
+            for index in range(self.array[position][1].table_size):
+               if self.array[position][1].array[index] is not None:
+                     res.append(self.array[position][1].array[index][0])
+        return res
 
     def values(self, key: K1 | None = None) -> list[V]:
         """
         key = None: returns all values in the table.
         key = x: returns all values for top-level key x.
         """
-        raise NotImplementedError()
+        res = []
+        if key is None:
+            for index in range(self.table_size):
+                if self.array[index] is not None:
+                    for j in range(self.array[index][1].table_size):
+                        if self.array[index][1].array[j] is not None:
+                            res.append(self.array[index][1].array[j][1])
+        else:
+            position = self._linear_probe(key, None, False)
+            if position is None:
+                raise KeyError(key)
+            for index in range(self.array[position][1].table_size):
+               if self.array[position][1].array[index] is not None:
+                     res.append(self.array[position][1].array[index][1])
+        return res
 
     def __contains__(self, key: tuple[K1, K2]) -> bool:
         """
