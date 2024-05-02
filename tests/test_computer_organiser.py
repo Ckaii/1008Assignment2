@@ -47,3 +47,6 @@ class TestComputerOrganiser(unittest.TestCase):
         co.add_computers([c5, c6, c7])
         co.add_computers([c8, c9, c10])
         self.assertEqual([co.cur_position(c) for c in [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10]], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+if __name__ == '__main__':
+    unittest.main()

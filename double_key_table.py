@@ -25,7 +25,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     # No test case should exceed 1 million entries.
     TABLE_SIZES = [5, 13, 29, 53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593, 49157, 98317, 196613, 393241, 786433, 1572869]
-    
+
     HASH_BASE = 31
 
     def __init__(self, sizes: list | None = None, internal_sizes: list | None = None) -> None:
@@ -98,7 +98,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                 if self.array[position] is None:
                     if is_insert:
                         internal_table = LinearProbeTable(self.internal_sizes)
-                        internal_table.hash = lambda k, tab=LinearProbeTable: self.hash2(k, tab)
+                        internal_table.hash = lambda k, tab=internal_table: self.hash2(k, tab)
                         self.array[position] = (key1, internal_table)
                     else:
                         raise KeyError(key1)
@@ -108,7 +108,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                     return position, self.array[position][1]._linear_probe(key2, is_insert)
                 else:
                     position = (position + 1) % self.table_size
-
+    
             raise KeyError(key1)
         
     def iter_keys(self, key: K1 | None = None) -> Iterator[K1 | K2]:
@@ -130,6 +130,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
             for index in range(self.array[position][1].table_size):
                 if self.array[position][1].array[index] is not None:
                     yield self.array[position][1].array[index][0]
+        
 
     def iter_values(self, key: K1 | None = None) -> Iterator[V]:
         """
@@ -240,7 +241,20 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
         :raises KeyError: when the key doesn't exist.
         """
-        raise NotImplementedError()
+        position1, position2 = self._linear_probe(key[0], key[1], False)
+        sub_table = self.array[position1][1]
+        del sub_table[key[1]]  # Deleting the item from the sub-table
+
+        if sub_table.is_empty():
+            self.array[position1] = None
+            self.count -= 1
+            position1 = (position1 + 1) % self.table_size
+            while self.array[position1] is not None:
+                key1, sub_table = self.array[position1]
+                self.array[position1] = None
+                newpos = self._linear_probe(key1, None, True)
+                self.array[newpos] = (key1, sub_table)
+                position1 = (position1 + 1) % self.table_size
 
     def _rehash(self) -> None:
         """
@@ -250,7 +264,24 @@ class DoubleKeyTable(Generic[K1, K2, V]):
         :complexity worst: O(N*hash(K) + N^2*comp(K)) Lots of probing.
         Where N is len(self)
         """
-        raise NotImplementedError()
+        old_table = self.array  # Store the old table
+        self.size_index += 1
+        if self.size_index >= len(self.TABLE_SIZES):
+            return
+
+        # Create a new top-level table with the new size
+        self.array = ArrayR(self.TABLE_SIZES[self.size_index])
+        self.count = 0  # Reset the count of top-level entries
+
+        # Reinsert all entries from the old table
+        for entry in old_table:
+            if entry is not None:
+                key1, sub_table = entry
+                if len(sub_table) > sub_table.table_size / 2:
+                    sub_table._rehash()
+
+                self.array[self.hash1(key1)] = (key1, sub_table)
+                self.count += 1  # Increment the count for each successfully reinserted top-level entry
 
     @property
     def table_size(self) -> int:
@@ -271,4 +302,10 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
         Not required but may be a good testing tool.
         """
-        raise NotImplementedError()
+        items = []
+        for entry in self.array:
+            if entry is not None:
+                key1, sub_table = entry
+                for key2, value in sub_table:
+                    items.append(f"{key1}, {key2}: {value}")
+        return "\n".join(items)
