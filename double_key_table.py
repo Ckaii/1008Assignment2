@@ -108,9 +108,12 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                     return position, self.array[position][1]._linear_probe(key2, is_insert)
                 else:
                     position = (position + 1) % self.table_size
-    
+
+            
             raise KeyError(key1)
         
+            
+
     def iter_keys(self, key: K1 | None = None) -> Iterator[K1 | K2]:
         """
         key = None:
