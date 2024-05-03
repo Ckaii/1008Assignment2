@@ -117,9 +117,7 @@ class InfiniteHashTable(Generic[K, V]):
         Not required but may be a good testing tool.
         """
         return str(self.array)
-
-
-
+    
     def get_location(self, key: K) -> list[int]:
         positions = []
         current_table = self
@@ -134,7 +132,6 @@ class InfiniteHashTable(Generic[K, V]):
                 break
             current_table = item
         return positions
-
 
     def __contains__(self, key: K) -> bool:
         """
