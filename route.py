@@ -48,7 +48,9 @@ class RouteSeries:
         Returns a route store which would be the result of:
         Removing the computer at the beginning of this series.
         """
-        pass
+        if not self.computer:
+            raise ValueError("No computer to remove")
+        return RouteSeries(None, self.following)
 
     def add_computer_before(self, computer: Computer) -> RouteStore:
         """
@@ -91,6 +93,7 @@ class Route:
         """
         Returns a *new* route which would be the result of:
         Adding a computer before everything currently in the route.
+
         """
         return Route(RouteSeries(computer, self))
 
@@ -102,7 +105,13 @@ class Route:
         return Route(RouteSplit(Route(None), Route(None), self))
 
     def follow_path(self, virus_type: VirusType) -> None:
-        """Follow a path and add computers according to a virus_type."""
+        """
+        Follow a path and add computers according to a virus_type.
+        
+        Best Case Time Complexity: O(n * (n * m))
+        Worst Case Time Complexity: O(n * (n * m))
+        n is the number of computers in the route.
+        """
         temp_store = self.store
         temp_stack = LinkedStack()
         while True:

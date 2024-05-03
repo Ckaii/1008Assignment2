@@ -2,6 +2,7 @@ from __future__ import annotations
 from computer import Computer
 from typing import List
 from double_key_table import DoubleKeyTable
+from algorithms.mergesort import mergesort
 class ComputerManager:
     def __init__(self) -> None:
         self.computers = DoubleKeyTable()
@@ -26,8 +27,8 @@ class ComputerManager:
 
     def group_by_difficulty(self) -> List[List[Computer]]:
         group = []
-        keys = self.computers.keys()
-        keys.sort()
+        keys = mergesort(self.computers.keys())
+
         for key in keys:
             group.append(self.computers.values(key))
         

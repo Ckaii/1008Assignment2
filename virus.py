@@ -21,12 +21,32 @@ class VirusType(ABC):
 
 class TopVirus(VirusType):
     def select_branch(self, top_branch: Route, bottom_branch: Route) -> BranchDecision:
+        """
+        Select the top branch. This method makes a decision based purely on a fixed strategy
+        without evaluating any properties of the branches.
+
+        Best Case Time Complexity: O(1) - The function returns a constant result without any conditional logic or iteration.
+        Worst Case Time Complexity: O(1) - Similarly, the worst case does not involve additional operations; it is constant regardless of input conditions.
+
+        :return: BranchDecision.TOP - Always returns this decision to indicate the selection of the top branch.
+        :post: decision made to select the top branch
+        """
         # Always select the top branch
         return BranchDecision.TOP
 
 
 class BottomVirus(VirusType):
     def select_branch(self, top_branch: Route, bottom_branch: Route) -> BranchDecision:
+        """
+        Select the bottom branch. This method operates with a fixed decision logic, consistently 
+        selecting the bottom route regardless of any dynamic conditions or properties of the routes.
+
+        Best Case Time Complexity: O(1) - The function executes a fixed action that does not involve any iteration or condition beyond the return statement.
+        Worst Case Time Complexity: O(1) - No variation in execution path; the complexity is constant regardless of the input scenario.
+
+        :return: BranchDecision.BOTTOM - Consistently returns this decision, which simplifies understanding and predicting the behavior of this method.
+        :post: decision made to select the bottom branch
+        """
         # Always select the bottom branch
         return BranchDecision.BOTTOM
 
@@ -36,6 +56,12 @@ class LazyVirus(VirusType):
         """
         Try looking into the first computer on each branch,
         take the path of the least difficulty.
+
+        Best Case Time Complexity: O(1) - Regardless of the branch conditions, the method performs a fixed number of operations involving simple type checks and direct comparisons.
+        Worst Case Time Complexity: O(1) - Even in cases where comparisons between two computers' hacking difficulties are required, the operations remain constant.
+
+        :return: BranchDecision - Returns a decision enum based on the comparison of hacking difficulty or the route type.
+        :post: decision made to select the branch with the lower hacking difficulty
         """
         top_route = type(top_branch.store) == RouteSeries
         bot_route = type(bottom_branch.store) == RouteSeries
@@ -57,52 +83,24 @@ class LazyVirus(VirusType):
         return BranchDecision.TOP
 
 
+
 class RiskAverseVirus(VirusType):
+            
     def select_branch(self, top_branch: Route, bottom_branch: Route) -> BranchDecision:
         """
         This virus is risk averse and likes to choose the path with the lowest risk factor.
+
+        Best Case Time Complexity: O(1)
+        Worst Case Time Complexity: O(1)
         """
         top_comp = top_branch.store.computer if isinstance(top_branch.store, RouteSeries) else None
         bot_comp = bottom_branch.store.computer if isinstance(bottom_branch.store, RouteSeries) else None
-        print(top_comp)
-        print(bot_comp)
         # If both branches are RouteSeries, continue with additional comparisons.
         if top_comp and bot_comp:
-            # If any computer has a risk factor of 0.0, take that path.
-            if top_comp.risk_factor == 0.0 and bot_comp.risk_factor != 0.0:
-                return BranchDecision.TOP
-            elif bot_comp.risk_factor == 0.0 and top_comp.risk_factor != 0.0:
-                return BranchDecision.BOTTOM
-            elif top_comp.risk_factor == 0.0 and bot_comp.risk_factor == 0.0:
-                # If there are multiple computers with a risk_factor of 0.0, take the path with the lowest hacking difficulty.
-                if top_comp.hacking_difficulty < bot_comp.hacking_difficulty:
-                    return BranchDecision.TOP
-                elif bot_comp.hacking_difficulty < top_comp.hacking_difficulty:
-                    return BranchDecision.BOTTOM
-
-            # Take the highest value between the hacking_difficulty and the half of the hacked_value.
-            top_value = max(top_comp.hacking_difficulty, top_comp.hacked_value / 2)
-            bot_value = max(bot_comp.hacking_difficulty, bot_comp.hacked_value / 2)
-
-            # Then, divide this by the risk factor.
-            if top_comp.risk_factor != 0.0:
-                top_value /= top_comp.risk_factor
-            if bot_comp.risk_factor != 0.0:
-                bot_value /= bot_comp.risk_factor
-
-            # Compare the two paths and take the path with the higher value.
-            if top_value > bot_value:
-                return BranchDecision.TOP
-            elif bot_value > top_value:
-                return BranchDecision.BOTTOM
-            else:
-                # If there is a tie, take the path with the lower risk factor.
-                if top_comp.risk_factor < bot_comp.risk_factor:
-                    return BranchDecision.TOP
-                elif bot_comp.risk_factor < top_comp.risk_factor:
-                    return BranchDecision.BOTTOM
-                else:
-                    return BranchDecision.STOP
+            ret = self.compare_by_risk_factor(top_comp, bot_comp)
+            if ret:
+                return ret
+            return self.compare_by_secret_value(top_comp, bot_comp)
 
         # If only one has a RouteSeries and the other a RouteSplit, pick the RouteSplit.
         elif isinstance(top_branch.store, RouteSeries) and isinstance(bottom_branch.store, RouteSplit):#should i put .store here?
@@ -112,11 +110,69 @@ class RiskAverseVirus(VirusType):
 
         # In all other cases default to the Top path.
         return BranchDecision.TOP
+    
+    def compare_by_secret_value(self, top_comp, bot_comp):
+        """
+        Compare the secret values of two computers and return the appropriate BranchDecision.
+        
+        Best Case Time Complexity: O(1)
+        Worst Case Time Complexity: O(1)
+        """
+        # Take the highest value between the hacking_difficulty and the half of the hacked_value.
+        top_value = max(top_comp.hacking_difficulty, top_comp.hacked_value / 2)
+        bot_value = max(bot_comp.hacking_difficulty, bot_comp.hacked_value / 2)
+
+        # Then, divide this by the risk factor.
+        if top_comp.risk_factor != 0.0:
+            top_value /= top_comp.risk_factor
+        if bot_comp.risk_factor != 0.0:
+            bot_value /= bot_comp.risk_factor
+
+        # Compare the two paths and take the path with the higher value.
+        if top_value > bot_value:
+            return BranchDecision.TOP
+        elif bot_value > top_value:
+            return BranchDecision.BOTTOM
+        else:
+            # If there is a tie, take the path with the lower risk factor.
+            if top_comp.risk_factor < bot_comp.risk_factor:
+                return BranchDecision.TOP
+            elif bot_comp.risk_factor < top_comp.risk_factor:
+                return BranchDecision.BOTTOM
+            else:
+                return BranchDecision.STOP
+            
+    def compare_by_risk_factor(self, top_comp, bot_comp):
+        """
+        Compare the risk factors of two computers and return the appropriate BranchDecision.
+
+        Best Case Time Complexity: O(1)
+        Worst Case Time Complexity: O(1)
+        """
+        # If any computer has a risk factor of 0.0, take that path.
+        if top_comp.risk_factor == 0.0 and bot_comp.risk_factor != 0.0:
+            return BranchDecision.TOP
+        elif bot_comp.risk_factor == 0.0 and top_comp.risk_factor != 0.0:
+            return BranchDecision.BOTTOM
+        elif top_comp.risk_factor == 0.0 and bot_comp.risk_factor == 0.0:
+            # If there are multiple computers with a risk_factor of 0.0, take the path with the lowest hacking difficulty.
+            if top_comp.hacking_difficulty < bot_comp.hacking_difficulty:
+                return BranchDecision.TOP
+            elif bot_comp.hacking_difficulty < top_comp.hacking_difficulty:
+                return BranchDecision.BOTTOM
+        return None
 
 class FancyVirus(VirusType):
     CALC_STR = "7 3 + 8 - 2 * 2 /"
     
     def eval_postfix(self, postfix_list):
+        """
+        Calculate the result of a postfix expression.
+
+        Best Case Time Complexity: O(n)
+        Worst Case Time Complexity: O(n)
+        n is the number of tokens in the postfix expression.
+        """
         # creating a new stack!
         stack = LinkedStack()
 
@@ -142,6 +198,11 @@ class FancyVirus(VirusType):
     def select_branch(self, top_branch: Route, bottom_branch: Route) -> BranchDecision:
         """
         This virus has a fancy-pants and likes to overcomplicate its approach.
+
+        Best Case Time Complexity: O(n * m)
+        Worst Case Time Complexity: O(n * m)
+        n is the number of tokens in the postfix expression.
+        m is the length of the CALC_STR.
         """
         threshold = self.eval_postfix(self.CALC_STR.split())
 
@@ -153,12 +214,7 @@ class FancyVirus(VirusType):
     
         # If both branches are RouteSeries
         if top_comp and bot_comp:
-            if top_comp.hacked_value < threshold:
-                return BranchDecision.TOP
-            if bot_comp.hacked_value > threshold:
-                return BranchDecision.BOTTOM
-            return BranchDecision.STOP
-    
+            return self.select_when_both_series(top_comp, bot_comp, threshold)
         # If one branch is RouteSeries and the other is RouteSplit
         if top_route and not bot_route:
             return BranchDecision.BOTTOM
@@ -167,3 +223,16 @@ class FancyVirus(VirusType):
     
         # In all other cases default to the Top path
         return BranchDecision.TOP
+    
+    def select_when_both_series(self, top_comp, bot_comp, threshold):
+        """
+        Select the branch when both branches are RouteSeries.
+        
+        Best Case Time Complexity: O(1)
+        Worst Case Time Complexity: O(1)
+        """
+        if top_comp.hacked_value < threshold:
+            return BranchDecision.TOP
+        if bot_comp.hacked_value > threshold:
+            return BranchDecision.BOTTOM
+        return BranchDecision.STOP

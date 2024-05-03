@@ -79,40 +79,44 @@ class DoubleKeyTable(Generic[K1, K2, V]):
         position = self.hash1(key1)
 
         if key2 is None:
-            for _ in range(self.table_size):
-                if self.array[position] is None:
-                    if is_insert:
-                        return position    
-                    raise KeyError(key1)
-                elif self.array[position][0] == key1:
-                    return position
-                else:
-                    # Taken by something else. Time to linear probe.
-                    position = (position + 1) % self.table_size
-
-            raise KeyError(key1)
+            return self.get_position(key1, key2, is_insert, position, False)
             
         else:
-            for _ in range(self.table_size):
-                #Your linear probe method should create the internal hash table if is_insert is true and this is the first pair with key1.
-                if self.array[position] is None:
-                    if is_insert:
-                        internal_table = LinearProbeTable(self.internal_sizes)
-                        internal_table.hash = lambda k, tab=internal_table: self.hash2(k, tab)
-                        self.array[position] = (key1, internal_table)
+            return self.get_position(key1, key2, is_insert, position, True)
+        
+    def get_position(self, key1: K1, key2: K2, is_insert: bool, position, condition) -> int:
+        
+        for _ in range(self.table_size):
+            if self.array[position] is None:
+                if is_insert:
+                    if not condition:
+                        return position
                     else:
-                        raise KeyError(key1)
+                        self.create_internal_table(key1, position)
+                else:
+                    raise KeyError(key1)
+                if condition:
                     index2 = self.hash2(key2, self.array[position][1])
                     return position, index2
-                elif self.array[position][0] == key1:
+                
+            elif self.array[position][0] == key1:
+                if not condition:
+                    return position
+                else:    
                     return position, self.array[position][1]._linear_probe(key2, is_insert)
-                else:
-                    position = (position + 1) % self.table_size
-
+            else:
+                # Taken by something else. Time to linear probe.
+                position = (position + 1) % self.table_size
             
-            raise KeyError(key1)
+        raise KeyError(key1)
         
-            
+    def create_internal_table(self, key1: K1, pos: int) -> None:
+        """
+        creates an internal hash table for the given key1 at the given position.
+        """
+        internal_table = LinearProbeTable(self.internal_sizes)
+        internal_table.hash = lambda k, tab=internal_table: self.hash2(k, tab)
+        self.array[pos] = (key1, internal_table)
 
     def iter_keys(self, key: K1 | None = None) -> Iterator[K1 | K2]:
         """
@@ -127,12 +131,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                     yield self.array[index][0]
         
         else:
-            position = self._linear_probe(key, None, False)
-            if position is None:
-                raise KeyError(key)
-            for index in range(self.array[position][1].table_size):
-                if self.array[position][1].array[index] is not None:
-                    yield self.array[position][1].array[index][0]
+            self.iter_keys_or_values(key, 0)
         
 
     def iter_values(self, key: K1 | None = None) -> Iterator[V]:
@@ -150,12 +149,19 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                             yield self.array[index][1].array[j][1]
         
         else:
-            position = self._linear_probe(key, None, False)
-            if position is None:
-                raise KeyError(key)
-            for index in range(self.array[position][1].table_size):
-                if self.array[position][1].array[index] is not None:
-                    yield self.array[position][1].array[index][1]
+            self.iter_keys_or_values(key, 1)
+
+    def iter_keys_or_values(self, key: K1, get_item: int):
+        """
+        returns an iterator of all keys or values in the bottom-hash-table for k.
+        """
+        position = self._linear_probe(key, None, False)
+        if position is None:
+            raise KeyError(key)
+        for index in range(self.array[position][1].table_size):
+            if self.array[position][1].array[index] is not None:
+                yield self.array[position][1].array[index][get_item]
+
 
     def keys(self, key: K1 | None = None) -> list[K1 | K2]:
         """
@@ -168,12 +174,7 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                 if self.array[index] is not None:
                     res.append(self.array[index][0])
         else:
-            position = self._linear_probe(key, None, False)
-            if position is None:
-                raise KeyError(key)
-            for index in range(self.array[position][1].table_size):
-               if self.array[position][1].array[index] is not None:
-                     res.append(self.array[position][1].array[index][0])
+            res = self.get_keys_or_values(key, 0)
         return res
 
     def values(self, key: K1 | None = None) -> list[V]:
@@ -189,12 +190,20 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                         if self.array[index][1].array[j] is not None:
                             res.append(self.array[index][1].array[j][1])
         else:
-            position = self._linear_probe(key, None, False)
-            if position is None:
-                raise KeyError(key)
-            for index in range(self.array[position][1].table_size):
-               if self.array[position][1].array[index] is not None:
-                     res.append(self.array[position][1].array[index][1])
+            res = self.get_keys_or_values(key, 1)
+        return res
+    
+    def get_keys_or_values(self, key: K1, get_item: int) -> K1 | V:
+        """
+        returns all top-level keys or values in the table.
+        """
+        res = []
+        position = self._linear_probe(key, None, False)
+        if position is None:
+            raise KeyError(key)
+        for index in range(self.array[position][1].table_size):
+            if self.array[position][1].array[index] is not None:
+                res.append(self.array[position][1].array[index][get_item])
         return res
 
     def __contains__(self, key: tuple[K1, K2]) -> bool:
