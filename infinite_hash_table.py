@@ -23,16 +23,40 @@ class InfiniteHashTable(Generic[K, V]):
     TABLE_SIZE = 27
 
     def __init__(self, level: int = 0) -> None:
+        """
+        Initializes the hash table with a specified level of depth for handling collisions.
+
+        :param level: Indicates the depth of nested hash tables, with 0 being the top level.
+        :complexity: Best/Worst Case O(1), constant time to initialize internal state and array.
+        :post: The hash table is initialized with the specified level and an empty array.
+        """
         self.array: ArrayR[tuple[K, V] | None] = ArrayR(self.TABLE_SIZE)
         self.count = 0
         self.level = level
     
     def hash(self, key: K) -> int:
+        """
+        Computes a hash for the given key using a character of the key determined by the current level.
+
+        :param key: The key to hash.
+        :return: An integer representing the hashed value of the key.
+        :complexity: Best/Worst Case O(1), constant time operation to compute hash.
+        :post: The hash value is returned.
+        """
         if self.level < len(key):
             return ord(key[self.level]) % (self.TABLE_SIZE-1)
         return self.TABLE_SIZE-1
 
     def __getitem__(self, key: K) -> V:
+        """
+        Retrieves the value associated with the specified key, handling nested hash tables if necessary.
+
+        :param key: The key whose value is to be retrieved.
+        :return: The value associated with the key.
+        :raises KeyError: If the key is not found in the hash table.
+        :complexity best: O(1), direct access if no collision or if the key directly matches.
+        :complexity worst: O(N), where N is the depth of the recursion due to nested hash tables.
+        """
         pos = self.hash(key)
         item = self.array[pos]
 
@@ -45,6 +69,15 @@ class InfiniteHashTable(Generic[K, V]):
         raise KeyError("Key not found")
     
     def __setitem__(self, key: K, value: V):
+        """
+        Inserts or updates a key-value pair in the hash table.
+
+        :param key: Key of the item to insert or update.
+        :param value: Value associated with the key.
+        :complexity best: O(1), when no collision occurs or if handling within a nested hash table where the key already exists or the position is none.
+        :complexity worst: O(1), involves creating a new nested hash table when a collision occurs with a different key at the same position.
+        :post: The key-value pair is added or updated in the hash table.
+        """
         pos = self.hash(key)
         item = self.array[pos]
         
@@ -67,17 +100,23 @@ class InfiniteHashTable(Generic[K, V]):
                 self.array[pos] = (key, value)  # Just update the value if the same key
             else:
                 # Collision with a different key, create a nested hash table
-                self.create_new_table(key, value, pos, item, existing_key)
-
-    def create_new_table(self, key: K, value: V, pos, item, existing_key) -> InfiniteHashTable[K, V]:
-            new_table = InfiniteHashTable(self.level + 1)
-            new_table[existing_key] = item[1]
-            new_table[key] = value
-            self.array[pos] = new_table
-            # Ensure count is correctly updated: increment by 1 only as it replaces the existing item with a table
-            self.count += 1
+                new_table = InfiniteHashTable(self.level + 1)
+                new_table[existing_key] = item[1]
+                new_table[key] = value
+                self.array[pos] = new_table
+                # Ensure count is correctly updated: increment by 1 only as it replaces the existing item with a table
+                self.count += 1
 
     def __delitem__(self, key: K):
+        """
+        Removes the specified key and its associated value from the hash table.
+
+        :param key: The key to remove.
+        :raises KeyError: If the key is not found.
+        :complexity best: O(1), direct access if no deep nested structures are involved.
+        :complexity worst: O(N), where N is the depth of recursion due to nested hash tables.
+        :post: The key and its associated value are removed from the hash table.
+        """
         pos = self.hash(key)
         item = self.array[pos]
         if item is None:
@@ -98,6 +137,11 @@ class InfiniteHashTable(Generic[K, V]):
             raise KeyError(f"Key {key} not found")
 
     def items(self):
+        """
+        Yields all key-value pairs in the hash table, including those in nested hash tables.
+
+        :complexity: Best/Worst Case O(n), where n is the total number of items in the table and nested tables.
+        """
         for item in self.array:
             if isinstance(item, tuple):
                 yield item
@@ -107,18 +151,31 @@ class InfiniteHashTable(Generic[K, V]):
     def __len__(self) -> int:
         """
         Returns the number of elements in the hash table.
+
+        :complexity: Best/Worst Case O(1), as the count is maintained and updated with each addition or removal.
+        :return: The number of elements in the hash table.
         """
         return self.count
 
     def __str__(self) -> str:
         """
-        String representation.
+        Provides a string representation of the hash table.
 
-        Not required but may be a good testing tool.
+        :complexity: Best/Worst Case O(n), where n is the total number of elements in the hash table.
+        :return: String representation of the hash table.
         """
         return str(self.array)
     
     def get_location(self, key: K) -> list[int]:
+        """
+        Finds and records the position of the specified key through potentially multiple levels of nested hash tables.
+
+        :param key: Key to locate in the hash table.
+        :return: List of positions indicating the path taken to find the key.
+        :raises KeyError: If the key is not found.
+        :complexity best: O(1), if the key is found at the first position without nested tables.
+        :complexity worst: O(N), where N is the depth of nested tables encountered before finding the key.
+        """
         positions = []
         current_table = self
 
@@ -135,9 +192,11 @@ class InfiniteHashTable(Generic[K, V]):
 
     def __contains__(self, key: K) -> bool:
         """
-        Checks to see if the given key is in the Hash Table
+        Checks whether the specified key is in the hash table, accounting for nested hash tables.
 
-        :complexity: See linear probe.
+        :param key: The key to check.
+        :return: True if the key exists, otherwise False.
+        :complexity: Best/Worst Case O(N) in worst case, where N is the depth of nested tables that might need to be traversed.
         """
         try:
             _ = self[key]
@@ -148,12 +207,21 @@ class InfiniteHashTable(Generic[K, V]):
 
     def sort_keys(self, current=None) -> list[str]:
         """
-        Returns all keys currently in the table in lexicographically sorted order.
+        Sorts and returns all keys in the hash table and nested hash tables in lexicographical order.
+
+        :return: Sorted list of keys.
+        :complexity: Best/Worst Case O(n log n), where n is the total number of keys, including those in nested hash tables.
         """
         return mergesort(self._gather_keys())
 
     def _gather_keys(self) -> list[K]:
-        """ Helper method to collect all keys from the hash table and nested hash tables. """
+        """
+        Recursively collects all keys from the hash table and nested hash tables.
+
+        :return: List of all keys.
+        :complexity: Best Case O(n), where n is the total number of keys to be collected.
+        :complexity: Worst Case O(n * m), where n is the total number of keys to be collected and m is the depth of recursion.
+        """
         keys = []
         for item in self.array:
             if isinstance(item, tuple):

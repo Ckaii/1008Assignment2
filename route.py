@@ -106,11 +106,15 @@ class Route:
 
     def follow_path(self, virus_type: VirusType) -> None:
         """
-        Follow a path and add computers according to a virus_type.
-        
-        Best Case Time Complexity: O(n * (n * m))
-        Worst Case Time Complexity: O(n * (n * m))
-        n is the number of computers in the route.
+        Navigate through a network route, making decisions at branches and adding computers based on the virus_type's strategy. 
+        This method uses a stack to manage branch paths for backtracking, ensuring all viable paths are explored according to decision criteria.
+
+        Best Case Time Complexity: O(n) - Occurs when each branch decision is processed exactly once and each decision involves evaluating a postfix expression.
+        Worst Case Time Complexity: O(n * (n1 * m)) - Occurs when FancyVirus was chosen.
+        n is the number of computers in the route, n1 is the number of tokens and m is the length of CALC_STR.
+
+        :return: None
+        :post: All accessible computers in the route are processed according to the virus_type, and the internal state of the route (i.e., the current position within the network) is updated based on the path taken.
         """
         temp_store = self.store
         temp_stack = LinkedStack()
@@ -138,8 +142,16 @@ class Route:
         
 
     def add_all_computers(self) -> list[Computer]:
-        """Returns a list of all computers on the route."""
+        """
+        Recursively collects all computers present in the route structure. This method traverses different types
+        of routes and compiles a list of all computers found along the way.
 
+        Best Case Time Complexity: O(n) - This is when the route has a straightforward, linear series of computers without any splits.
+        Worst Case Time Complexity: O(n) - Even with splits, each computer in the route is processed exactly once, where n is the total number of computers.
+        
+        :return: list[Computer] - A list containing all computers collected from the route.
+        "post": The route structure remains unchanged.
+        """
         if type(self.store) == RouteSplit:
             return self.store.top.add_all_computers() + self.store.bottom.add_all_computers() + self.store.following.add_all_computers()
             

@@ -71,21 +71,54 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     def _linear_probe(self, key1: K1, key2: K2 | None, is_insert: bool) -> tuple[int, int] | int:
         """
-        Find the correct position for this key in the hash table using linear probing.
+        Utilize linear probing to find a suitable position for a given key or key pair in the hash table.
+        Depending on whether a secondary key is provided, the function adapts its probing strategy.
 
-        :raises KeyError: When the key pair is not in the table, but is_insert is False.
-        :raises FullError: When a table is full and cannot be inserted.
+        Best Case Time Complexity: O(len(key)) - Immediate location of an open slot or the target key.
+        Worst Case Time Complexity: O(N * len(key)) - A full scan of the table might be required due to collisions or a nearly full table.
+
+        :param key1: The primary key component.
+        :param key2: The optional secondary key component, may be None.
+        :param is_insert: Boolean flag indicating whether the operation is for insertion (True) or lookup (False).
+        :return: The index of the key in the hash table if found or inserting, or a tuple with the indexes if using two keys.
+        :raises KeyError: Raised if the key pair is not found in the table and `is_insert` is False, indicating a lookup operation.
+        :raises FullError: Raised if the hash table is full and no slot can be accommodated for an insertion.
+
+        Implementation Details:
+        - The function first computes the hash for the primary key using a predefined hash function (`hash1`).
+        - Based on whether the secondary key `key2` is provided, it calls `get_position` to handle the actual probing and placement logic:
+            * If `key2` is None, it treats the operation as a single-key probe.
+            * If `key2` is provided, it adjusts to a dual-key probing mechanism.
         """
         position = self.hash1(key1)
 
         if key2 is None:
             return self.get_position(key1, key2, is_insert, position, False)
-            
         else:
             return self.get_position(key1, key2, is_insert, position, True)
         
     def get_position(self, key1: K1, key2: K2, is_insert: bool, position, condition) -> int:
-        
+        """
+        Attempt to find the correct position for a key (or key pair) in the hash table using linear probing.
+        This function efficiently manages single or dual key systems, handles insertion, and finds the positions
+        for existing keys.
+
+        Best Case Time Complexity: O(len(key))
+        - The best case occurs when the slot at the initially computed hash index (from `hash1`) is either empty (for insertion) 
+        or directly contains the matching key (for retrieval). This results in an immediate resolution without further probing.
+
+        Worst Case Time Complexity: O(N * len(key))
+        - The worst case occurs when the key does not initially match and the table is nearly full or the key is not present.
+        The method may need to probe each slot in the table once, which means iterating through the entire table (N is the table size).
+
+        :param key1: The primary key to be inserted or searched for.
+        :param key2: The secondary key used only if the condition is True.
+        :param is_insert: A boolean indicating if the operation is an insertion (True) or a search (False).
+        :param position: The starting index calculated using the primary hash function.
+        :param condition: A boolean that when True indicates a dual-key system is being used.
+        :return: Depending on the condition, returns either an int or a tuple (int, int) representing the position(s) in the hash table.
+        :raises KeyError: Raised if the key cannot be found when searching or if no empty position is found during insertion.
+        """
         for _ in range(self.table_size):
             if self.array[position] is None:
                 if is_insert:
@@ -112,7 +145,12 @@ class DoubleKeyTable(Generic[K1, K2, V]):
         
     def create_internal_table(self, key1: K1, pos: int) -> None:
         """
-        creates an internal hash table for the given key1 at the given position.
+        Creates an internal hash table for the given key1 at the given position.
+
+        :return: None
+        :post: A new LinearProbeTable is initialized and set at the specified index in the array, configured with a custom hash function.
+        :comp best: O(len(key)), as initializing the LinearProbeTable, setting the hash function, and placing it in the array are all constant time operations.
+        :comp worst: O(len(key)), operations do not vary as they involve fixed-time setup regardless of the input size or hash table state.
         """
         internal_table = LinearProbeTable(self.internal_sizes)
         internal_table.hash = lambda k, tab=internal_table: self.hash2(k, tab)
@@ -120,10 +158,11 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     def iter_keys(self, key: K1 | None = None) -> Iterator[K1 | K2]:
         """
-        key = None:
-            Returns an iterator of all top-level keys in hash table
-        key = k:
-            Returns an iterator of all keys in the bottom-hash-table for k.
+        Returns an iterator over keys in a hash table, which can either be top-level or nested keys based on the input key.
+
+        :return: Iterator over keys
+        :comp best: O(n) when key is None, iterates over all elements but quick skip over None entries.
+        :comp worst: O(n) when key is None, each element is accessed; complexity for specified key depends on the distribution and count of entries in the nested structure which could range from O(1) to O(m).
         """
         if key is None:
             for index in range(self.table_size):
@@ -136,10 +175,12 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     def iter_values(self, key: K1 | None = None) -> Iterator[V]:
         """
-        key = None:
-            Returns an iterator of all values in hash table
-        key = k:
-            Returns an iterator of all values in the bottom-hash-table for k.
+        Returns an iterator over values in the hash table, which can be either all values in the main table or specific values in a nested hash table based on the input key.
+
+        :return: Iterator over values
+        :comp best: O(n * m) when key is None, performs nested iterations over all slots in both main and nested tables.
+        :comp worst: O(n * m) when key is None, as each non-null slot in both levels of tables is accessed; complexity for specified key depends on the distribution and count of entries in the nested structure which could range from O(1) to O(m).
+        note: n is the number of elements in the main table, m is the number of elements in the nested table.
         """
         if key is None:
             for index in range(self.table_size):
@@ -153,7 +194,11 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     def iter_keys_or_values(self, key: K1, get_item: int):
         """
-        returns an iterator of all keys or values in the bottom-hash-table for k.
+        Returns an iterator of all keys or values in the bottom-hash-table for the given key.
+
+        :return: Iterator of keys or values based on get_item index
+        :comp best: O(N * len(key)) if the position is found quickly and the nested table is minimally filled.
+        :comp worst: O(N * len(key) * m), where m is the size of the nested hash table, accounting for a full search in both tables due to collisions or fullness.
         """
         position = self._linear_probe(key, None, False)
         if position is None:
@@ -179,8 +224,11 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     def values(self, key: K1 | None = None) -> list[V]:
         """
-        key = None: returns all values in the table.
-        key = x: returns all values for top-level key x.
+        Returns all values from the hash table. If a specific key is given, returns all corresponding values from the nested hash table.
+        
+        :return: List of values
+        :comp best: O(N * len(key)), where the value to find is at the first position.
+        :comp worst: O(n * m), where n is the size of the main hash table and m is the average size of the nested hash tables, for retrieving all values.
         """
         res = []
         if key is None:
@@ -195,7 +243,12 @@ class DoubleKeyTable(Generic[K1, K2, V]):
     
     def get_keys_or_values(self, key: K1, get_item: int) -> K1 | V:
         """
-        returns all top-level keys or values in the table.
+        Returns all values from the hash table. If a specific key is given, returns all corresponding values from the nested hash table.
+        
+        :return: List of values
+        :comp best: O(N * len(key))
+        :comp worst: O(N * len(key) * n)
+        where n is the size of the main hash table.
         """
         res = []
         position = self._linear_probe(key, None, False)
@@ -208,9 +261,10 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     def __contains__(self, key: tuple[K1, K2]) -> bool:
         """
-        Checks to see if the given key is in the Hash Table
-
-        :complexity: See linear probe.
+        Returns all keys or values from a specified top-level key's nested hash table.
+        
+        :return: List of keys or values
+        :comp: O(N * len(key)), where n is the size of the main hash table (due to potential full table scan by _linear_probe) and m is the size of the nested hash table.
         """
         try:
             _ = self[key]
@@ -232,6 +286,9 @@ class DoubleKeyTable(Generic[K1, K2, V]):
     def __setitem__(self, key: tuple[K1, K2], data: V) -> None:
         """
         Set an (key, value) pair in our hash table.
+
+        :complexity best: O(N * len(key)), assuming a good hash function with minimal collisions for both the main table and the sub-table or the position is empty.
+        :complexity worst: O((n + (N*hash(K) + N^2*comp(K)))) * N * len(key)), where n is the number of entries in the main hash table (due to linear probing) and N^2 arises from a rehash operation triggered by a high load factor.
         """
 
         key1, key2 = key
@@ -252,6 +309,8 @@ class DoubleKeyTable(Generic[K1, K2, V]):
         Deletes a (key, value) pair in our hash table.
 
         :raises KeyError: when the key doesn't exist.
+        :complexity best: O(n * N * len(key)) where n is the number of entries in the main table, assuming no cascading rehash is required.
+        :complexity worst: O((n^2) * N * len(key)) in the worst case if every deletion triggers a cascading rehash of all subsequent entries.
         """
         position1, position2 = self._linear_probe(key[0], key[1], False)
         sub_table = self.array[position1][1]
@@ -321,3 +380,4 @@ class DoubleKeyTable(Generic[K1, K2, V]):
                 for key2, value in sub_table:
                     items.append(f"{key1}, {key2}: {value}")
         return "\n".join(items)
+
