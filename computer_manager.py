@@ -8,7 +8,6 @@ class ComputerManager:
 
     def add_computer(self, computer: Computer) -> None:
         self.computers.append(computer)
-        self.computers.sort(key=lambda x: x.hacking_difficulty)
 
     def remove_computer(self, computer: Computer) -> None:
         self.computers.remove(computer)
@@ -17,11 +16,17 @@ class ComputerManager:
         self.remove_computer(old_computer)
         self.add_computer(new_computer)
 
-    def computers_with_difficulty(self, diff: int) -> list[Computer]:
+    def computers_with_difficulty(self, diff: int) -> List[Computer]:
         return [computer for computer in self.computers if computer.hacking_difficulty == diff]
 
-    def group_by_difficulty(self) -> list[list[Computer]]:
-        res = []
-        for diff in set([computer.hacking_difficulty for computer in self.computers]):
-            res.append(self.computers_with_difficulty(diff))
-        return res
+    def group_by_difficulty(self) -> List[List[Computer]]:
+        if not self.computers:
+            return []  # Return an empty list if no computers are stored
+
+        diff_set = set(computer.hacking_difficulty for computer in self.computers)
+        grouped_computers = []
+        
+        for diff in sorted(diff_set):  # Sorting the difficulties to ensure ordered groups
+            grouped_computers.append(self.computers_with_difficulty(diff))
+        
+        return grouped_computers
