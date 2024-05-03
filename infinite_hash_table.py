@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Generic, TypeVar
 from data_structures.linked_stack import LinkedStack
-
+from algorithms.mergesort import mergesort
 from data_structures.referential_array import ArrayR
 
 K = TypeVar("K")
@@ -67,12 +67,15 @@ class InfiniteHashTable(Generic[K, V]):
                 self.array[pos] = (key, value)  # Just update the value if the same key
             else:
                 # Collision with a different key, create a nested hash table
-                new_table = InfiniteHashTable(self.level + 1)
-                new_table[existing_key] = item[1]
-                new_table[key] = value
-                self.array[pos] = new_table
-                # Ensure count is correctly updated: increment by 1 only as it replaces the existing item with a table
-                self.count += 1
+                self.create_new_table(key, value, pos, item, existing_key)
+
+    def create_new_table(self, key: K, value: V, pos, item, existing_key) -> InfiniteHashTable[K, V]:
+            new_table = InfiniteHashTable(self.level + 1)
+            new_table[existing_key] = item[1]
+            new_table[key] = value
+            self.array[pos] = new_table
+            # Ensure count is correctly updated: increment by 1 only as it replaces the existing item with a table
+            self.count += 1
 
     def __delitem__(self, key: K):
         pos = self.hash(key)
@@ -150,9 +153,7 @@ class InfiniteHashTable(Generic[K, V]):
         """
         Returns all keys currently in the table in lexicographically sorted order.
         """
-        all_keys = self._gather_keys()
-        all_keys.sort()
-        return all_keys
+        return mergesort(self._gather_keys())
 
     def _gather_keys(self) -> list[K]:
         """ Helper method to collect all keys from the hash table and nested hash tables. """
