@@ -11,9 +11,6 @@ class ComputerOrganiser:
         self.computers_rank_list = []
 
     def cur_position(self, computer: Computer) -> int:
-        # for i in self.computers_rank_list:
-        #     if i == computer.rank:
-        #         return i
         if computer not in self.computers:
             raise KeyError
         res = binary_search(self.computers_rank_list, computer.rank)
@@ -21,7 +18,7 @@ class ComputerOrganiser:
     
     def add_computers(self, computers: list[Computer]) -> None:
         self.computers.extend(computers)
-        self.computers = mergesort(self.computers, key=lambda x: x.hacking_difficulty)
+        self.computers = mergesort(self.computers, key=lambda x: (x.hacking_difficulty, x.risk_factor, x.name))
 
         for i, c in enumerate(self.computers):
             c.rank = i
