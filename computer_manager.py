@@ -1,32 +1,34 @@
 from __future__ import annotations
 from computer import Computer
-
-
+from typing import List
+from double_key_table import DoubleKeyTable
 class ComputerManager:
     def __init__(self) -> None:
-        self.computers = []
+        self.computers = DoubleKeyTable()
 
     def add_computer(self, computer: Computer) -> None:
-        self.computers.append(computer)
+        self.computers[str(computer.hacking_difficulty), computer.name] = computer
 
     def remove_computer(self, computer: Computer) -> None:
-        self.computers.remove(computer)
+        del self.computers[str(computer.hacking_difficulty), computer.name]
 
     def edit_computer(self, old_computer: Computer, new_computer: Computer) -> None:
-        self.remove_computer(old_computer)
-        self.add_computer(new_computer)
+        #remove the old computer and add the new computer
+        del self.computers[str(old_computer.hacking_difficulty), old_computer.name]
+        self.computers[str(new_computer.hacking_difficulty), new_computer.name] = new_computer
 
     def computers_with_difficulty(self, diff: int) -> List[Computer]:
-        return [computer for computer in self.computers if computer.hacking_difficulty == diff]
+        try:
+            values = self.computers.values(str(diff))
+        except KeyError:
+            return []
+        return values
 
     def group_by_difficulty(self) -> List[List[Computer]]:
-        if not self.computers:
-            return []  # Return an empty list if no computers are stored
-
-        diff_set = set(computer.hacking_difficulty for computer in self.computers)
-        grouped_computers = []
+        group = []
+        keys = self.computers.keys()
+        keys.sort()
+        for key in keys:
+            group.append(self.computers.values(key))
         
-        for diff in sorted(diff_set):  # Sorting the difficulties to ensure ordered groups
-            grouped_computers.append(self.computers_with_difficulty(diff))
-        
-        return grouped_computers
+        return group
