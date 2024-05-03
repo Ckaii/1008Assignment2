@@ -147,8 +147,9 @@ class Route:
         of routes and compiles a list of all computers found along the way.
 
         Best Case Time Complexity: O(n) - This is when the route has a straightforward, linear series of computers without any splits.
-        Worst Case Time Complexity: O(n) - Even with splits, each computer in the route is processed exactly once, where n is the total number of computers.
-        
+        Worst Case Time Complexity: O(n) - Even with splits, each computer in the route is processed exactly once.
+        n is the total number of computers or the depth of recursion.
+
         :return: list[Computer] - A list containing all computers collected from the route.
         "post": The route structure remains unchanged.
         """

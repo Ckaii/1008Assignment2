@@ -210,8 +210,12 @@ class DoubleKeyTable(Generic[K1, K2, V]):
 
     def keys(self, key: K1 | None = None) -> list[K1 | K2]:
         """
-        key = None: returns all top-level keys in the table.
-        key = x: returns all bottom-level keys for top-level key x.
+        Returns all keys from the hash table. If a specific key is given, returns all corresponding bottom-level keys.
+
+        :param key: Optional. If provided, returns the keys associated with the bottom-level for the given top-level key. If None, returns all top-level keys in the table.
+        :return: List of keys.
+        :comp best: O(n), when key is None, where n is the size of the main hash table, for retrieving all top-level keys.
+        :comp worst: O(n * m), when key is at the last index of the nested hased table, where n is the size of the main hash table and m is the size of the nested hash table, for a specific key.
         """
         res = []
         if key is None:
