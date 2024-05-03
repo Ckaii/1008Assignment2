@@ -139,7 +139,7 @@ class FancyVirus(VirusType):
                 stack.push(res)
         return stack.pop()
 
-    def select_branch(self, top_branch: Route, bottom_branch: Route) -> BranchDecision:#check this again
+    def select_branch(self, top_branch: Route, bottom_branch: Route) -> BranchDecision:
         """
         This virus has a fancy-pants and likes to overcomplicate its approach.
         """
