@@ -92,3 +92,31 @@ class TestInfiniteHash(unittest.TestCase):
             "mining"
         ]
         self.assertListEqual(res, expected)
+
+    @number("4.4")
+    def test_sort_keys_diy(self):
+            ih = InfiniteHashTable()
+            ih["li"] = 1
+            ih["leg"] = 2
+            ih["lin"] = 3
+            ih["linked"] = 4
+            ih["link"] = 5
+            ih["leg"] = 6
+            ih["lamp"] = 7
+            ih["land"] = 8
+            
+            res = ih.sort_keys()
+            print(ih.get_location("leg"))
+            print(ih.get_location("li"))
+            print(ih.get_location("lin"))
+            print(ih.get_location("link"))
+            print(ih.get_location("linked"))
+            expected = [
+                "lamp","land",
+                "leg",
+                "li","lin","link","linked",
+            ]
+            self.assertListEqual(res, expected)
+
+if __name__ == "__main__":
+    unittest.main()

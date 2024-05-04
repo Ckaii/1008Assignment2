@@ -9,3 +9,4 @@ class Computer:
     hacking_difficulty: int
     hacked_value: int
     risk_factor: float
+    rank: int = -1
